@@ -22,6 +22,7 @@ Automatically publish `Go` binaries to Github Release Assets through Github Acti
 - Support customizable asset names.      
 - Support private repositories.     
 - Support executable compression by [upx](https://github.com/upx/upx).       
+- Support retry if upload phase fails.     
 
 ## Usage
 
@@ -40,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: wangyoucao577/go-release-action@v1.20
+    - uses: wangyoucao577/go-release-action@v1.22
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: linux
@@ -53,8 +54,8 @@ jobs:
 | --------- | -------- | ----------- |
 | github_token | **Mandatory** | Your `GITHUB_TOKEN` for uploading releases to Github asserts. |
 | goos | **Mandatory** | `GOOS` is the running program's operating system target: one of `darwin`, `freebsd`, `linux`, and so on. |
-| goarch | **Mandatory** | `GOARCH` is the running program's architecture target: one of `386`, `amd64`, `arm`, `s390x`, and so on. |
-| goversion |  **Optional** | The `Go` compiler version. `latest`([check it here](https://golang.org/VERSION?m=text)) by default, optional `1.13`, `1.14`, `1.15`, `1.16` or `1.17`. <br>It also takes download URL instead of version string if you'd like to use more specified version. But make sure your URL is `linux-amd64` package, better to find the URL from [Go - Downloads](https://golang.org/dl/).<br>E.g., `https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz`. |
+| goarch | **Mandatory** | `GOARCH` is the running program's architecture target: one of `386`, `amd64`, `arm`, `arm64`, `s390x`, and so on. |
+| goversion |  **Optional** | The `Go` compiler version. `latest`([check it here](https://go.dev/VERSION?m=text)) by default, optional `1.13`, `1.14`, `1.15`, `1.16` or `1.17`. <br>It also takes download URL instead of version string if you'd like to use more specified version. But make sure your URL is `linux-amd64` package, better to find the URL from [Go - Downloads](https://go.dev/dl/).<br>E.g., `https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz`. |
 | project_path | **Optional** | Where to run `go build`. <br>Use `.` by default. |
 | binary_name | **Optional** | Specify another binary name if do not want to use repository basename. <br>Use your repository's basename if not set. |
 | pre_command | **Optional** | Extra command that will be executed before `go build`. You may want to use it to solve dependency if you're NOT using [Go Modules](https://github.com/golang/go/wiki/Modules). |
@@ -68,6 +69,7 @@ jobs:
 | release_tag | **Optional** | Target release tag to publish your binaries to. It's dedicated to publish binaries on every `push` into one specified release page since there's no target in this case. DON'T set it if you trigger the action by `release: [created]` event as most people do.|
 | overwrite | **Optional** | Overwrite asset if it's already exist. `FALSE` by default. |
 | asset_name | **Optional** | Customize asset name if do not want to use the default format `${BINARY_NAME}-${RELEASE_TAG}-${GOOS}-${GOARCH}`. <br>Make sure set it correctly, especially for matrix usage that you have to append `-${{ matrix.goos }}-${{ matrix.goarch }}`. A valid example could be  `asset_name: binary-name-${{ matrix.goos }}-${{ matrix.goarch }}`. |
+| retry | **Optional** | How many times retrying if upload fails. `3` by default. |
 
 ### Advanced Example
 
@@ -90,15 +92,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/amd64 
+        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
         goos: [linux, windows, darwin]
-        goarch: ["386", amd64]
+        goarch: ["386", amd64, arm64]
         exclude:  
           - goarch: "386"
             goos: darwin 
+          - goarch: arm64
+            goos: windows 
     steps:
     - uses: actions/checkout@v2
-    - uses: wangyoucao577/go-release-action@v1.20
+    - uses: wangyoucao577/go-release-action@v1.22
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
